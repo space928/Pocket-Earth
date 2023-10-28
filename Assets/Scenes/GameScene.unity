@@ -1389,9 +1389,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 327622891}
-  m_LocalRotation: {x: -0.20223781, y: 0.5966225, z: 0.15871443, w: 0.760231}
-  m_LocalPosition: {x: 113.08618, y: 100.88762, z: 62.30261}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalRotation: {x: 0.38773546, y: 0.5371736, z: -0.30429137, w: 0.6844798}
+  m_LocalPosition: {x: 112.59514, y: 101.75042, z: 62.182446}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 395158812}
@@ -1410,7 +1410,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   planet: {fileID: 1655694534}
-  lattitude: 0.52
+  lattitude: 0.54
   longitude: 0.24
   heading: 0
   alignRotation: 1
@@ -1477,7 +1477,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 327622891}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 360588917386024263, guid: dad86209a8254fd41a073888be67564a, type: 3}
 --- !u!1 &395158811
 GameObject:
   m_ObjectHideFlags: 0
@@ -3254,9 +3254,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 900189515}
-  m_LocalRotation: {x: -0.09877582, y: 0.5609081, z: 0.06763393, w: 0.8191771}
-  m_LocalPosition: {x: 116.21913, y: 87.92875, z: 69.55101}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalRotation: {x: 0.35547194, y: 0.509852, z: -0.24339925, w: 0.7446123}
+  m_LocalPosition: {x: 107.18651, y: 107.48327, z: 66.04758}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 395158812}
@@ -3275,7 +3275,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   planet: {fileID: 1655694534}
-  lattitude: 0.24
+  lattitude: 0.68
   longitude: 0.37
   heading: 0
   alignRotation: 1
@@ -4327,9 +4327,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1104492334}
-  m_LocalRotation: {x: -0.22494078, y: 0.46788335, z: 0.124467045, w: 0.84557366}
-  m_LocalPosition: {x: 107.7021, y: 100.88762, z: 75.03714}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalRotation: {x: 0.43506336, y: 0.42006397, z: -0.24073471, w: 0.7591528}
+  m_LocalPosition: {x: 107.48978, y: 101.32028, z: 74.90402}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 395158812}
@@ -4348,7 +4348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   planet: {fileID: 1655694534}
-  lattitude: 0.52
+  lattitude: 0.53
   longitude: 0.56
   heading: 0
   alignRotation: 1
@@ -5804,7 +5804,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1405823711}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 5542413560607618145, guid: 99c039556a9a6b44d9d0046e31063b76, type: 3}
 --- !u!4 &1405823715
 Transform:
   m_ObjectHideFlags: 0
@@ -5812,9 +5812,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1405823711}
-  m_LocalRotation: {x: -0.14394373, y: 0.6923007, z: 0.14394373, w: 0.69230074}
-  m_LocalPosition: {x: 116.79493, y: 95.97408, z: 51.988464}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalRotation: {x: 0.5339649, y: 0.35985672, z: -0.26815188, w: 0.71657467}
+  m_LocalPosition: {x: 109.36906, y: 90.341225, z: 80.60141}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 395158812}
@@ -5833,8 +5833,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   planet: {fileID: 1655694534}
-  lattitude: 0.41
-  longitude: 0
+  lattitude: 0.29
+  longitude: 0.64
   heading: 0
   alignRotation: 1
   buildingType: 6
@@ -7062,9 +7062,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1682546077}
-  m_LocalRotation: {x: 0.012376198, y: 0.56490755, z: -0.008474248, w: 0.8250179}
-  m_LocalPosition: {x: 117.53428, y: 74.54384, z: 70.0611}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalRotation: {x: 0.5626678, y: 0.41322964, z: -0.3852707, w: 0.60350037}
+  m_LocalPosition: {x: 117.441086, y: 79.54076, z: 70.024956}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 395158812}
@@ -7083,7 +7083,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   planet: {fileID: 1655694534}
-  lattitude: -0.03
+  lattitude: 0.07
   longitude: 0.37
   heading: 0
   alignRotation: 1
@@ -7151,8 +7151,9 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1682546077}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1684346888
-GameObject:
+--- !u!21 &1805596838
+Material:
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
