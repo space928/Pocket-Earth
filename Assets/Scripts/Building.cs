@@ -37,6 +37,7 @@ namespace Assets.Scripts
                 renderers = GetComponents<MeshRenderer>();
             foreach (var renderer in renderers) 
             {
+                if(renderer.sharedMaterial == null) continue;
                 switch(buildingType)
                 {
                     case BuildingType.AppartmentBlock:
