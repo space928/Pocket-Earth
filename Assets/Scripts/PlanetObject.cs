@@ -52,6 +52,23 @@ namespace Assets.Scripts
             }
         }
 
+        public Planet Planet { get => planet; set { planet = value; } }
+
+        public static Vector3 CartesianToPolar(Vector3 point)
+        {
+            var point_n = point.normalized;
+            return new (Mathf.Asin(point_n.y), Mathf.Atan2(point_n.z, point_n.x), point.magnitude);
+        }
+
+        public static Vector3 PolarToCartesian(Vector3 point)
+        {
+            float coslat = Mathf.Cos(point.x);
+            float sinlat = Mathf.Sin(point.x);
+            float coslong = Mathf.Cos(point.y);
+            float sinlong = Mathf.Sin(point.y);
+            return new(point.z * coslat * coslong, point.z * sinlat, point.z * coslat * sinlong);
+        }
+
         internal void UpdatePositionFromLatLong()
         {
             float radius = planet.Radius /* + planet height*/;
@@ -61,7 +78,7 @@ namespace Assets.Scripts
             float sinlong = Mathf.Sin(longitude);
             Vector3 localPos = new(coslat * coslong, sinlat, coslat * sinlong);
             transform.position = radius * localPos + planet.transform.position;
-            transform.localRotation = Quaternion.LookRotation(localPos);
+            transform.localRotation = Quaternion.AngleAxis(heading, Vector3.up) * Quaternion.LookRotation(localPos);
         }
 
         // Use this for initialization
@@ -73,7 +90,12 @@ namespace Assets.Scripts
         // Update is called once per frame
         void Update()
         {
-            UpdatePositionFromLatLong();
+#if UNITY_EDITOR
+            if (!UnityEditor.EditorApplication.isPlaying)
+            {
+                UpdatePositionFromLatLong();
+            }
+#endif
         }
 
         public void OnDrawGizmos()
