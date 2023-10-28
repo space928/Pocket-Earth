@@ -37,28 +37,29 @@ namespace Assets.Scripts
                 renderers = GetComponents<MeshRenderer>();
             foreach (var renderer in renderers) 
             {
+                if(renderer.sharedMaterial == null) continue;
                 switch(buildingType)
                 {
                     case BuildingType.AppartmentBlock:
-                        renderer.material.color = Color.white;
+                        renderer.sharedMaterial.color = Color.white;
                         break;
                     case BuildingType.Powerplant:
-                        renderer.material.color = Color.red;
+                        renderer.sharedMaterial.color = Color.red;
                         break;
                     case BuildingType.House:
-                        renderer.material.color = Color.green;
+                        renderer.sharedMaterial.color = Color.green;
                         break;
                     case BuildingType.Supermarket:
-                        renderer.material.color = Color.blue;
+                        renderer.sharedMaterial.color = Color.blue;
                         break;
                     case BuildingType.Farm:
-                        renderer.material.color = Color.yellow;
+                        renderer.sharedMaterial.color = Color.yellow;
                         break;
                     case BuildingType.Office:
-                        renderer.material.color = Color.cyan;
+                        renderer.sharedMaterial.color = Color.cyan;
                         break;
                     default:
-                        renderer.material.color = Color.grey;
+                        renderer.sharedMaterial.color = Color.grey;
                         break;
                 }
             }
