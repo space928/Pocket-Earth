@@ -5,18 +5,20 @@ using System.Linq;
 using UnityEngine;
 
 // Old dogy code incoming...
-[RequireComponent (typeof(MeshFilter), typeof(MeshCollider), typeof(MeshRenderer))]
 public class RoadGen : MonoBehaviour
 {
-	[Header("Update")]
-	public bool draw = false;
-    public bool autoDraw = false;
+	[Header("Dependencies")]
+	public Planet planet;
+    [Tooltip("These prefabs are in order based on number of intersections (3, 4, 5...)")] public List<GameObject> intersectionPrefabs;
+	public Material roadMaterialTemplate;
+	public Transform roadSegmentsParent;
+    [Header("Update")]
+    public bool autoUpdateMesh = false;
 
 	[Header("Profile Definitions")]
     public AnimationCurve[] roadProfiles;
     public float roadWidth;
     public float roadHeight;
-	[Tooltip("These prefabs are in order based on number of intersections (3, 4, 5...)")]public List<GameObject> intersectionPrefabs;
 	[Tooltip("Segments per m")]
     public float resolution;
     public int maxIterations = 2000;
@@ -46,152 +48,115 @@ public class RoadGen : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-		GenerateRoadSegments ();
+        UpdateMesh();
 	}
 
-	public void GenerateRoadSegments ()
+	[Button]
+	public void UpdateMesh()
 	{
-		spline.Clear ();
-		RoadNode[] roadNodes = GetComponentsInChildren<RoadNode>();
-		foreach (RoadNode n in roadNodes)
+		GenerateRoadSegments();
+		foreach(var segment in segments)
 		{
-			n.visitedEdges = new bool[n.connections.Count];
+			segment.UpdateRoadMesh();
 		}
-		if (roadNodes.Length < 1)
-			return;
+	}
 
-		//TODO: this will hang if a road loops back on itself
-		Stack<RoadNode> currNodes = new();
-		currNodes.Push (roadNodes [0]);
-		RoadNode last = roadNodes [0];
-		while (currNodes.Count > 0)
+	[Button]
+	public void GenerateRoadSegments()
+	{
+        RoadNode[] roadNodes = GetComponentsInChildren<RoadNode>();
+		HashSet<RoadSegment> segmentHashes = new(segments);
+
+		// Search for existing road segments
+		for (int i = 0; i < roadSegmentsParent.childCount; i++)
 		{
-			if (spline.Count > maxIterations)
-				break;
-			
-			RoadNode rn = currNodes.Pop ();
-
-			//nodes.Add (rn);
-			//rn.parent = last;
-			// Update the visited edges for where we're coming from
-			for (int x = 0; x < rn.visitedEdges.Length; x++)
-				if (rn.connections [x] == rn.last)
-					rn.visitedEdges [x] = true;
-			
-			int i = -1;
-			foreach (RoadNode n in rn.connections)
+			var rs = roadSegmentsParent.GetChild(i).GetComponent<RoadSegment>();
+			if (!segmentHashes.Contains(rs))
 			{
-				i++;
-				if (rn.visitedEdges [i])//Can't branch back to oneself
-						continue;
-				RoadNode nc = n;
-				nc.last = rn;
-
-				// Make sure we update the visited edges for where we're going
-                for (int x = 0; x < rn.visitedEdges.Length; x++)
-                    if (rn.connections[x] == nc)
-                        rn.visitedEdges[x] = true;
-
-                currNodes.Push(nc);
-            }
-
-			RoadNode[] child = rn.connections.Where (y => y != rn.last).ToArray ();//This only looks at one connection
-			if (child.Length < 1)
-				continue;
-			
-			foreach (RoadNode ch in child)
-			{
-				RoadNode childchild = ch.connections.FirstOrDefault (z => z != rn);
-				if (childchild == null)
-					childchild = ch;
-				InterpSpline (new RoadNode[]{ last, rn, ch, childchild });
-
-				//Mark end splines to prevent creation of extra triangles
-				if (childchild == ch)
-				{
-					int sn = spline.FindLastIndex (x => true);
-					spline [sn] = new Line (spline [sn].start, spline [sn].end, true, spline [sn].intersectionDist);
-				}
+				segments.Add(rs);
+				segmentHashes.Add(rs);
 			}
-
-			last = rn;
 		}
-		//debug = spline.Count;
 
-		if (draw)
+        // Destroyed orphaned segments
+        for (int i = segments.Count-1; i >= 0; i--)
+			if (segments[i] && (!segments[i].StartNode || !segments[i].EndNode))
+			{
+#if UNITY_EDITOR
+				if (Application.isPlaying)
+					Destroy(segments[i]);
+				else
+					DestroyImmediate(segments[i]);
+#else
+				Destroy(segments[i]);
+#endif
+				segments[i] = null;
+            }
+        segments.RemoveAll(seg => seg == null);
+        if (roadNodes.Length < 1)
+            return;
+
+		Dictionary<int, RoadSegment> segmentCache = new(segments.Select(x => new KeyValuePair<int, RoadSegment>(
+			x.StartNode.GetHashCode() ^ x.EndNode.GetHashCode(), x)));
+
+		HashSet<RoadNode> visited = new();
+        Stack<RoadNode> currNodes = new();
+		currNodes.Push(roadNodes[0]);
+		while(currNodes.Count > 0)
 		{
-			if (!autoDraw)
-				draw = false;
-			
-			//Mesh nroad = CreateRoadMesh (spline.ToArray ());
-			/*dbgmesh = nroad;
-			GetComponent<MeshFilter> ().mesh = nroad;
-			GetComponent<MeshCollider> ().sharedMesh = nroad;*/
+			RoadNode curr = currNodes.Pop();
+			visited.Add(curr);
+			// Clean up dead children
+			curr.connections.RemoveAll(x => x == null);
+			foreach(RoadNode child in curr.connections)
+			{
+				if(visited.Contains(child)) continue;
+
+				currNodes.Push(child);
+
+				var nodeStart = curr;
+				var nodeEnd = child;
+
+				RoadNode nodePreStart = null;
+				RoadNode nodePostEnd = null;
+				if (curr.connections.Count == 2)
+					nodePreStart = curr.connections[0] == child ? curr.connections[1] : curr.connections[0];
+
+                if (child.connections.Count == 2)
+                    nodePostEnd = child.connections[0] == curr ? child.connections[1] : child.connections[0];
+
+				if (segmentCache.ContainsKey(nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()))
+				{
+					segmentCache[nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()].Construct(roadWidth, nodePreStart, nodeStart, nodeEnd, nodePostEnd, this);
+					continue;
+				}
+
+                // Generate a new road segment between this child and it's parent
+                GameObject segmentGo = new($"Road Segment {nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()}");
+				segmentGo.transform.SetParent(roadSegmentsParent, false);
+				var segment = segmentGo.AddComponent<RoadSegment>();
+				segment.Construct(roadWidth, nodePreStart, nodeStart, nodeEnd, nodePostEnd, this);
+				segment.Planet = planet;
+				segment.AlignRotation = false;
+				segment.Position = (nodeStart.transform.position + nodeEnd.transform.position) / 2;
+				segments.Add(segment);
+			}
 		}
-	}
+    }
 
-	Line[] InterpSpline (RoadNode[] nodes)
-	{
-		RoadNode curr = nodes [1];
-
-		Vector3 p0 = nodes [0].transform.localPosition;
-		Vector3 p1 = curr.transform.localPosition;
-		Vector3 p2 = nodes [2].transform.localPosition;
-		Vector3 p3 = nodes [3].transform.localPosition;
-
-		//HACK:Naive distance
-		float d = Mathf.Sqrt (Mathf.Pow (p1.x - p2.x, 2) + Mathf.Pow (p1.y - p2.y, 2) + Mathf.Pow (p1.z - p2.z, 2));
-
-		int iters = (int)(resolution * d);
-		Vector3 lastP = p1;
-		for (int x = 1; x <= iters; x++)
+    public void OnDrawGizmos()
+    {
+        if(autoUpdateMesh)
 		{
-			Vector3 n = GetCatmullRomPosition (x / (float)iters, p0, p1, p2, p3);
-			spline.Add (new Line (lastP, n, false, 0));
-			lastP = n;
+			UpdateMesh();
 		}
-		return spline.ToArray ();
-	}
+    }
 
-	public static int Clamp (int x, int count)
+    public static int Clamp (int x, int count)
 	{
 		int ret = x >= 0 ? x : 0;
 		if (ret > count - 1)
 			ret = count - 1;
 		return  ret;
-	}
-
-	//Returns a position between 4 Vector3 with Catmull-Rom spline algorithm
-	//http://www.iquilezles.org/www/articles/minispline/minispline.htm
-	Vector3 GetCatmullRomPosition (float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
-	{
-		//The coefficients of the cubic polynomial (except the 0.5f * which I added later for performance)
-		Vector3 a = 2f * p1;
-		Vector3 b = p2 - p0;
-		Vector3 c = 2f * p0 - 5f * p1 + 4f * p2 - p3;
-		Vector3 d = -p0 + 3f * p1 - 3f * p2 + p3;
-
-		//The cubic polynomial: a + b * t + c * t^2 + d * t^3
-		Vector3 pos = 0.5f * (a + (b * t) + (t * t * c) + (t * t * t * d));
-
-		return pos;
-	}
-
-	void OnDrawGizmos ()
-	{
-		GenerateRoadSegments ();
-		Gizmos.color = new Color (1, 1, 0, 0.75F);
-		foreach (Line l in spline)
-			Gizmos.DrawLine (l.start, l.end);
-
-		/*Gizmos.color = Color.white;
-		for (int i = 0; i < dbgmesh.vertices.Length - 1; i++)
-		{
-			//Gizmos.DrawRay (p, Vector3.up);
-			int vertsPerSeg = roadProfiles [0].length;
-			if (i % vertsPerSeg == vertsPerSeg - 1)
-				continue;
-			Gizmos.DrawLine (dbgmesh.vertices [i], dbgmesh.vertices [i + 1]);
-		}*/
 	}
 }

@@ -1,7 +1,5 @@
 ﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.Timeline;
-using UnityEngine.UIElements;
 
 namespace Assets.Scripts
 {
@@ -12,6 +10,7 @@ namespace Assets.Scripts
         [Range(-Mathf.PI, Mathf.PI)][SerializeField] private float lattitude;
         [Range(0f, Mathf.PI * 2)][SerializeField] private float longitude;
         [SerializeField] private float heading;
+        [SerializeField] private bool alignRotation = true;
 
         /// <summary>
         /// Lattitude in radians.
@@ -52,6 +51,27 @@ namespace Assets.Scripts
             }
         }
 
+        public bool AlignRotation
+        {
+            get => alignRotation;
+            set 
+            {
+                alignRotation = value;
+                UpdatePositionFromLatLong();
+            }
+        }
+
+        public Vector3 Position 
+        { 
+            set
+            {
+                Vector3 latlong = CartesianToPolar(value);
+                Lattitude = latlong.x;
+                Longitude = latlong.y;
+                UpdatePositionFromLatLong();
+            } 
+        }
+
         public Planet Planet { get => planet; set { planet = value; } }
 
         public static Vector3 CartesianToPolar(Vector3 point)
@@ -60,13 +80,19 @@ namespace Assets.Scripts
             return new (Mathf.Asin(point_n.y), Mathf.Atan2(point_n.z, point_n.x), point.magnitude);
         }
 
-        public static Vector3 PolarToCartesian(Vector3 point)
+        public static Vector3 PolarToCartesian(Vector3 latLongRad)
         {
-            float coslat = Mathf.Cos(point.x);
-            float sinlat = Mathf.Sin(point.x);
-            float coslong = Mathf.Cos(point.y);
-            float sinlong = Mathf.Sin(point.y);
-            return new(point.z * coslat * coslong, point.z * sinlat, point.z * coslat * sinlong);
+            float coslat = Mathf.Cos(latLongRad.x);
+            float sinlat = Mathf.Sin(latLongRad.x);
+            float coslong = Mathf.Cos(latLongRad.y);
+            float sinlong = Mathf.Sin(latLongRad.y);
+            return new(latLongRad.z * coslat * coslong, latLongRad.z * sinlat, latLongRad.z * coslat * sinlong);
+        }
+
+        public Vector3 GetNormal(Vector3 point)
+        {
+            var p = (point - planet.transform.position).normalized;
+            return p;
         }
 
         internal void UpdatePositionFromLatLong()
@@ -78,13 +104,14 @@ namespace Assets.Scripts
             float sinlong = Mathf.Sin(longitude);
             Vector3 localPos = new(coslat * coslong, sinlat, coslat * sinlong);
             transform.position = radius * localPos + planet.transform.position;
-            transform.localRotation = Quaternion.AngleAxis(heading, Vector3.up) * Quaternion.LookRotation(localPos);
+            if(alignRotation)
+                transform.localRotation = Quaternion.AngleAxis(heading, Vector3.up) * Quaternion.LookRotation(localPos);
         }
 
         // Use this for initialization
         void Start()
         {
-
+            UpdatePositionFromLatLong();
         }
 
         // Update is called once per frame
@@ -93,15 +120,12 @@ namespace Assets.Scripts
 #if UNITY_EDITOR
             if (!UnityEditor.EditorApplication.isPlaying)
             {
-                UpdatePositionFromLatLong();
+                if (UnityEditor.SceneView.lastActiveSceneView != UnityEditor.EditorWindow.mouseOverWindow)
+                    UpdatePositionFromLatLong();
+                else
+                    Position = transform.position;
             }
 #endif
-        }
-
-        public void OnDrawGizmos()
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawRay(transform.position, transform.up);
         }
     }
 }

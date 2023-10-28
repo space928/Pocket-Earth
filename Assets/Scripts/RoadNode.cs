@@ -10,11 +10,15 @@ public class RoadNode : PlanetObject
 {
 	public List<RoadNode> connections = new();
     public int roadProfile;
+	public List<Building> buildings = new();
 
     [HideInInspector] public bool[] visitedEdges;
 	[HideInInspector] public RoadNode last;
 	private RoadGen roadGen;
 	private GameObject intersection;
+	private Vector3[] attachmentPoints;
+
+	public Vector3[] AttachementPoints => attachmentPoints;
 
 	public void UpdateIntersection()
 	{
@@ -26,10 +30,13 @@ public class RoadNode : PlanetObject
 		var go = Instantiate(roadGen.intersectionPrefabs[connections.Count - 2]);
 		go.transform.SetParent(transform, false);
 		intersection = go;
+        attachmentPoints = new Vector3[go.transform.childCount];
+		for(int i = 0; i < go.transform.childCount; i++)
+			attachmentPoints[i] = go.transform.GetChild(i).position;
     }
 
     #region Editor Tools
-    new void OnDrawGizmos ()
+    void OnDrawGizmos ()
 	{
 		Gizmos.color = new Color (.9f, .3f, .1f, .8f);
 		Gizmos.DrawSphere (transform.position, .5f);
