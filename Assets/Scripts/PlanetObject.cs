@@ -62,6 +62,7 @@ namespace Assets.Scripts
             Vector3 localPos = new(coslat * coslong, sinlat, coslat * sinlong);
             transform.position = radius * localPos + planet.transform.position;
             transform.localRotation = Quaternion.LookRotation(localPos);
+            transform.Rotate(90, 0, 0, Space.Self); /* Making building upright */
         }
 
         // Use this for initialization
