@@ -10,7 +10,7 @@ public class GameManager : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField] private Material healthBarMat;
-    [SerializeField] private GameObject disasterGenerator;
+    [SerializeField] private DisasterManager disasterGenerator;
     [SerializeField] private Light sun;
     [SerializeField] private GameObject citizenPrefab;
     [SerializeField] private Transform citizensParent;
