@@ -2,16 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using static Citizen;
 using static RoadGen;
-using static UnityEditor.PlayerSettings;
 
 namespace Assets.Scripts
 {
-    [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
-    public class RoadSegment : PlanetObject
+    [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter), typeof(MeshCollider))]
+    public class RoadSegment : SelectablePlanetObject
     {
-        [SerializeField] [Range(1, 6)] private int roadLanes = 1;
+        [SerializeField][Range(1, 6)] private int roadLanes = 1;
         [SerializeField] private LaneType[] laneTypes = new LaneType[6];
         private float laneWidth;
         private RoadNode roadNodeA;
@@ -23,9 +24,70 @@ namespace Assets.Scripts
         private RoadGen roadGen;
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
+        private MeshCollider meshCollider;
 
         public RoadNode StartNode => roadNodeB;
         public RoadNode EndNode => roadNodeC;
+        public LaneType[] LaneTypes => laneTypes;
+
+        public float GetLengthByMode(ModeOfTransport mode)
+        {
+            float best = 0;
+            foreach(LaneType laneType in laneTypes)
+                best = Mathf.Max(best, CompatibleModeFactor(mode, laneType));
+
+            if (best == 0)
+                return float.PositiveInfinity;
+
+            float dist = (roadNodeB.transform.position - roadNodeC.transform.position).magnitude;
+            dist /= best;
+
+            return dist;
+        }
+
+        public float CompatibleModeFactor(ModeOfTransport mode, LaneType type)
+        {
+            switch (mode)
+            {
+                case ModeOfTransport.Walking:
+                    return type switch
+                    {
+                        LaneType.Path => .75f,
+                        LaneType.Cycle => 0.5f,
+                        LaneType.RoadR or LaneType.RoadL => 0.25f,
+                        _ => 0,
+                    };
+                case ModeOfTransport.Cycling:
+                    return type switch
+                    {
+                        LaneType.Cycle => 1.0f,
+                        LaneType.Path => 0.25f,
+                        LaneType.RoadR or LaneType.RoadL => 0.5f,
+                        LaneType.BusR or LaneType.BusL => 0.5f,
+                        _ => 0,
+                    };
+                case ModeOfTransport.Driving:
+                    return type switch
+                    {
+                        LaneType.Cycle => 0,
+                        LaneType.Path => 0,
+                        LaneType.RoadR or LaneType.RoadL => 1.1f,
+                        LaneType.BusR or LaneType.BusL => 0,
+                        _ => 0,
+                    };
+                case ModeOfTransport.Bussing:
+                    return type switch
+                    {
+                        LaneType.Cycle => 0,
+                        LaneType.Path => 0,
+                        LaneType.RoadR or LaneType.RoadL => 1,
+                        LaneType.BusR or LaneType.BusL => 1.3f,
+                        _ => 0,
+                    };
+                default:
+                    return 0;
+            }
+        }
 
         public void Construct(float laneWidth, RoadNode roadNodeA, RoadNode roadNodeB, RoadNode roadNodeC, RoadNode roadNodeD, RoadGen roadGen)
         {
@@ -37,9 +99,11 @@ namespace Assets.Scripts
             this.roadGen = roadGen;
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
-            if(roadMaterial == null)
+            meshCollider = GetComponent<MeshCollider>();
+            if (roadMaterial == null)
                 roadMaterial = new(roadGen.roadMaterialTemplate);
             meshRenderer.sharedMaterial = roadMaterial;
+            SelectableMaterial = roadMaterial;
         }
 
         private void Start()
@@ -47,12 +111,21 @@ namespace Assets.Scripts
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
             meshRenderer.sharedMaterial = roadMaterial;
+            meshCollider = GetComponent<MeshCollider>();
+            SelectableMaterial = roadMaterial;
         }
 
-        public void Update()
+        void Update()
         {
-
+            SelectionUpdate();
         }
+
+#if UNITY_EDITOR
+        public void OnDrawGizmosSelected()
+        {
+            EditorUpdate();
+        }
+#endif
 
         public override int GetHashCode()
         {
@@ -79,7 +152,7 @@ namespace Assets.Scripts
             if (!this.roadNodeA && !this.roadNodeD)
             {
                 Vector3 pos = Vector3.LerpUnclamped(roadNodeB.transform.position, roadNodeC.transform.position, t);
-                pos *= Planet.Radius / pos.magnitude;
+                pos *= Planet.GetRadiusAtPoint(pos) / pos.magnitude;
                 return pos;
             }
 
@@ -112,7 +185,7 @@ namespace Assets.Scripts
             Vector3 pos = 0.5f * (a + (b * t) + (t * t * c) + (t * t * t * d));
 
             // Now project that position back onto the sphere
-            pos *= Planet.Radius / pos.magnitude;
+            pos *= Planet.GetRadiusAtPoint(pos) / pos.magnitude;
 
             return pos;
         }
@@ -137,7 +210,7 @@ namespace Assets.Scripts
                 {
                     Vector2 rpcoord = new(roadGen.roadProfiles[rp].keys[x].time, roadGen.roadProfiles[rp].keys[x].value);
                     rpcoord.Scale(new Vector2(roadLanes, roadGen.roadHeight));
-                    rpcoord.x -= roadLanes / 2;
+                    rpcoord.x -= roadLanes / (float)2;
                     Vector3 newVert = lastPoint;
                     Vector3 slice = new(rpcoord.x, rpcoord.y, 0);
                     if ((point - lastPoint).normalized.magnitude == 0)
@@ -194,6 +267,7 @@ namespace Assets.Scripts
             //rmesh.UploadMeshData (false);
             
             meshFilter.sharedMesh = rmesh;
+            meshCollider.sharedMesh = rmesh;
         }
     }
 

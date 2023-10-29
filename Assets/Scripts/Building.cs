@@ -4,65 +4,40 @@ using UnityEngine;
 namespace Assets.Scripts
 {
     [ExecuteInEditMode]
-    [RequireComponent (typeof (MeshRenderer))]
-    public class Building : PlanetObject
+    public class Building : SelectablePlanetObject
     {
         [SerializeField] private BuildingType buildingType;
+        [SerializeField] public RoadNode roadNode;
+        [SerializeField] private float perCapitaPollutionRate;
+        [SerializeField] private float basePollutionRate = 0.002f;
 
-        private MeshRenderer[] renderers = null;
+        private Material material;
+        
+        public float PerCapitaPollutionRate { get => perCapitaPollutionRate; set { perCapitaPollutionRate = value; } }
+
+        public BuildingType BuildingType => buildingType;
 
         // Use this for initialization
         void Start()
         {
-            renderers = GetComponents<MeshRenderer>();
+            // Sorry render batching...
+            material = GetComponentInChildren<MeshRenderer>().sharedMaterial = new(GetComponentInChildren<MeshRenderer>().sharedMaterial);
+            SelectableMaterial = material;
         }
 
         // Update is called once per frame
         void Update()
         {
-#if UNITY_EDITOR
-            if(!UnityEditor.EditorApplication.isPlaying)
-            {
-                // Basic behaviour in edit mode
-                UpdatePositionFromLatLong();
-                DBG_UpdateBuildingMat();
-                return;
-            }
-#endif
+            GameManager.GameManagerInst.RegisterEnvironmentalContribution(-Time.deltaTime * basePollutionRate);
+
+            SelectionUpdate();
         }
 
-        internal void DBG_UpdateBuildingMat()
+        private void OnDrawGizmosSelected()
         {
-            if (renderers == null)
-                renderers = GetComponents<MeshRenderer>();
-            foreach (var renderer in renderers) 
-            {
-                if(renderer.sharedMaterial == null) continue;
-                switch(buildingType)
-                {
-                    case BuildingType.AppartmentBlock:
-                        renderer.sharedMaterial.color = Color.white;
-                        break;
-                    case BuildingType.Powerplant:
-                        renderer.sharedMaterial.color = Color.red;
-                        break;
-                    case BuildingType.House:
-                        renderer.sharedMaterial.color = Color.green;
-                        break;
-                    case BuildingType.Supermarket:
-                        renderer.sharedMaterial.color = Color.blue;
-                        break;
-                    case BuildingType.Farm:
-                        renderer.sharedMaterial.color = Color.yellow;
-                        break;
-                    case BuildingType.Office:
-                        renderer.sharedMaterial.color = Color.cyan;
-                        break;
-                    default:
-                        renderer.sharedMaterial.color = Color.grey;
-                        break;
-                }
-            }
+#if UNITY_EDITOR
+            EditorUpdate();
+#endif
         }
     }
 

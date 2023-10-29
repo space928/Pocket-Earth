@@ -25,9 +25,10 @@ public class RoadGen : MonoBehaviour
 		
 	public float debug;
 
-	private List<Line> spline = new();
 	[SerializeField] [ReadOnly] private List<RoadSegment> segments = new();
-	private Mesh dbgmesh;
+    [SerializeField][ReadOnly] private RoadNode[] roadNodes;
+
+	public RoadNode[] RoadNodes => roadNodes;
 
 	public struct Line
 	{
@@ -64,7 +65,7 @@ public class RoadGen : MonoBehaviour
 	[Button]
 	public void GenerateRoadSegments()
 	{
-        RoadNode[] roadNodes = GetComponentsInChildren<RoadNode>();
+        roadNodes = GetComponentsInChildren<RoadNode>();
 		HashSet<RoadSegment> segmentHashes = new(segments);
 
 		// Search for existing road segments
@@ -84,20 +85,20 @@ public class RoadGen : MonoBehaviour
 			{
 #if UNITY_EDITOR
 				if (Application.isPlaying)
-					Destroy(segments[i]);
+					Destroy(segments[i].gameObject);
 				else
-					DestroyImmediate(segments[i]);
+					DestroyImmediate(segments[i].gameObject);
 #else
-				Destroy(segments[i]);
+				Destroy(segments[i].gameObject);
 #endif
-				segments[i] = null;
+                segments[i] = null;
             }
         segments.RemoveAll(seg => seg == null);
         if (roadNodes.Length < 1)
             return;
 
 		Dictionary<int, RoadSegment> segmentCache = new(segments.Select(x => new KeyValuePair<int, RoadSegment>(
-			x.StartNode.GetHashCode() ^ x.EndNode.GetHashCode(), x)));
+			System.HashCode.Combine(x.StartNode, x.EndNode), x)));
 
 		HashSet<RoadNode> visited = new();
         Stack<RoadNode> currNodes = new();
@@ -125,14 +126,14 @@ public class RoadGen : MonoBehaviour
                 if (child.connections.Count == 2)
                     nodePostEnd = child.connections[0] == curr ? child.connections[1] : child.connections[0];
 
-				if (segmentCache.ContainsKey(nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()))
+				if (segmentCache.ContainsKey(System.HashCode.Combine(nodeStart, nodeEnd)))
 				{
-					segmentCache[nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()].Construct(roadWidth, nodePreStart, nodeStart, nodeEnd, nodePostEnd, this);
+					segmentCache[System.HashCode.Combine(nodeStart, nodeEnd)].Construct(roadWidth, nodePreStart, nodeStart, nodeEnd, nodePostEnd, this);
 					continue;
 				}
 
                 // Generate a new road segment between this child and it's parent
-                GameObject segmentGo = new($"Road Segment {nodeStart.GetHashCode() ^ nodeEnd.GetHashCode()}");
+                GameObject segmentGo = new($"Road Segment {System.HashCode.Combine(nodeStart, nodeEnd)}");
 				segmentGo.transform.SetParent(roadSegmentsParent, false);
 				var segment = segmentGo.AddComponent<RoadSegment>();
 				segment.Construct(roadWidth, nodePreStart, nodeStart, nodeEnd, nodePostEnd, this);
@@ -140,6 +141,9 @@ public class RoadGen : MonoBehaviour
 				segment.AlignRotation = false;
 				segment.Position = (nodeStart.transform.position + nodeEnd.transform.position) / 2;
 				segments.Add(segment);
+
+				nodeStart.AddSegment(segment, false, nodeEnd);
+				nodeEnd.AddSegment(segment, true, nodeStart);
 			}
 		}
     }
