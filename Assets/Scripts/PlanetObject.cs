@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
+using NaughtyAttributes;
+using Unity.VisualScripting;
 
 namespace Assets.Scripts
 {
@@ -7,8 +9,8 @@ namespace Assets.Scripts
     public class PlanetObject : MonoBehaviour
     {
         [SerializeField] private Planet planet;
-        [Range(-Mathf.PI, Mathf.PI)][SerializeField] private float lattitude;
-        [Range(0f, Mathf.PI * 2)][SerializeField] private float longitude;
+        [Range(-Mathf.PI, Mathf.PI)][SerializeField][OnValueChanged("UpdatePositionFromLatLong")] private float lattitude;
+        [Range(0f, Mathf.PI * 2)][SerializeField][OnValueChanged("UpdatePositionFromLatLong")] private float longitude;
         [SerializeField] private float heading;
         [SerializeField] private bool alignRotation = true;
 
@@ -97,7 +99,9 @@ namespace Assets.Scripts
 
         internal void UpdatePositionFromLatLong()
         {
-            float radius = planet.Radius /* + planet height*/;
+            if(!planet)
+                return;
+            float radius = planet.GetRadiusAtPoint(lattitude, longitude) /* + planet height*/;
             float coslat = Mathf.Cos(lattitude);
             float sinlat = Mathf.Sin(lattitude);
             float coslong = Mathf.Cos(longitude);
@@ -114,18 +118,81 @@ namespace Assets.Scripts
             UpdatePositionFromLatLong();
         }
 
-        // Update is called once per frame
-        void Update()
-        {
 #if UNITY_EDITOR
+        internal void EditorUpdate()
+        {
             if (!UnityEditor.EditorApplication.isPlaying)
             {
-                if (UnityEditor.SceneView.lastActiveSceneView != UnityEditor.EditorWindow.mouseOverWindow)
-                    UpdatePositionFromLatLong();
-                else
-                    Position = transform.position;
+                if (planet)
+                {
+                    if (UnityEditor.SceneView.lastActiveSceneView == UnityEditor.EditorWindow.mouseOverWindow)
+                        Position = transform.position;
+                }
             }
+        }
 #endif
+
+        // Update is called once per frame
+        void OnDrawGizmosSelected()
+        {
+#if UNITY_EDITOR
+            EditorUpdate();
+#endif
+        }
+    }
+
+    public abstract class SelectablePlanetObject : PlanetObject
+    {
+        private bool isMouseOver;
+        private bool wasMouseOver;
+        private bool isHovered;
+        private bool isSelected;
+        private Material selectableMaterial;
+
+        public Material SelectableMaterial { get => selectableMaterial; set => selectableMaterial = value; }
+
+        public void SelectionUpdate()
+        { 
+            if (!isMouseOver && wasMouseOver)
+            {
+                wasMouseOver = false;
+                OnMouseExit();
+            }
+
+            isMouseOver = false;
+        }
+
+        public void MouseOver(RaycastHit hit)
+        {
+            isMouseOver = true;
+            if (!wasMouseOver)
+                OnMouseEnter();
+
+            wasMouseOver = true;
+        }
+
+        public void OnMouseEnter()
+        {
+            isHovered = true;
+            selectableMaterial.SetColor("_EmissionColor", GameManager.GameManagerInst.HighlightColour);
+        }
+
+        public void OnMouseExit()
+        {
+            isHovered = false;
+            selectableMaterial.SetColor("_EmissionColor", isSelected ? GameManager.GameManagerInst.SelectedColour : Color.black);
+        }
+
+        public void Select()
+        {
+            isSelected = true;
+            selectableMaterial.SetColor("_EmissionColor", GameManager.GameManagerInst.SelectedColour);
+        }
+
+        public void DeSelect()
+        {
+            isSelected = false;
+            selectableMaterial.SetColor("_EmissionColor", isHovered ? GameManager.GameManagerInst.HighlightColour : Color.black);
         }
     }
 }
